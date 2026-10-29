@@ -30,7 +30,7 @@ The project has already been moved into a maven file structure for you, but youâ
 and add their artifacts to your pom.xml until you can run the project successfully. Look throughout the project
 directory in order to make sure you find and add all the appropriate dependencies.
 
-You'll know you've added all of the correct dependencies when the project runs without errors.
+You'll know you've added all the correct dependencies when the project runs without errors.
 
 ![starter pom.xml file](pom_xml.png)
 
@@ -44,7 +44,7 @@ from the program and package it as a separate module to be included both in your
 
 1. Use either maven or your IDE to create a new maven project that will be the parent project for the two modules you
    will be creating.
-2. Inside of the parent project, create one module for your Security Security and one module for your Image service.
+2. Inside the parent project, create one module for your Security Security and one module for your Image service.
    (*Note: Use one parent pom at the top level and one child pom for each module.*)
 3. Move all components into their proper modules.
 4. Update dependencies in the poms so that shared dependencies are in the parent pom, but unshared dependencies are in
