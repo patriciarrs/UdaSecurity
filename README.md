@@ -96,7 +96,7 @@ may have to move this logic into the security service to be tested.
 Remember, a failing unit test could mean one of two things:
 
 1. Your unit test is faulty.
-1. Something in your program isn't working.
+2. Something in your program isn't working.
 
 Some of these requirements might not be properly implemented, so, even if you write the correct unit test, it might
 still fail. You will fix any faulty or missing requirements in the next section.
@@ -124,7 +124,7 @@ As we stated in the previous section, a failing unit test could mean one of two 
 1. Your unit test is faulty.
 2. Something in your program isn't working.
 
-Your task is to make sure all of the Application Requirements are properly implemented. Some requirements may not be
+Your task is to make sure all the Application Requirements are properly implemented. Some requirements may not be
 performed and some bugs may produce unexpected behavior. After you fix any broken requirements, all of your unit tests
 should pass!
 
