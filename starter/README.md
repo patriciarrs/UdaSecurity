@@ -26,13 +26,13 @@ Now that you have identified all the dependencies and can run the project, it’
 ### Splitting Things Up
 
 1. Use either maven or your IDE to create a new maven project that will be the parent project for the two modules you will be creating. 
-2. Inside the parent project, create one module for your Security and one module for your Image service. (*Note: Use one parent pom at the top level and one child pom for each module.*)
-3. Move all components into their proper modules.
-4. Update dependencies in the poms so that shared dependencies are in the parent pom, but unshared dependencies are in the child poms.
-5. Use the pluginManagement tag in the parent pom to set the latest versions for the core plugins used by the maven lifecycle, such as the maven-compiler-plugin.
-6. Create a module descriptor for each package. You will have to provide the correct `export` and `requires` statements in each of these descriptors.
-7. Address transitive dependencies. Now that your project uses modules, you may need to open your packages to dependencies or explicitly include transitive dependencies that are required by your dependencies that do not declare them all in a `modules-info.java`. *(Note: In particular, some amazon SDK dependencies do not provide modular jars but may require your project to reference the libraries they use. You might need to add **`requires`** statement to your modules-info.java to reference those dependencies. See this discussion thread on modularization of *<a href="https://github.com/aws/aws-sdk-java-v2/issues/1869" target="_blank">*aws 2*</a>*.)*
-8. Make sure the project still runs!
+1. Inside of the parent project, create one module for your Security Security and one module for your Image service. (*Note: Use one parent pom at the top level and one child pom for each module.*)
+1. Move all components into their proper modules.
+1. Update dependencies in the poms so that shared dependencies are in the parent pom, but unshared dependencies are in the child poms.
+1. Use the pluginManagement tag in the parent pom to set the latest versions for the core plugins used by the maven lifecycle, such as the maven-compiler-plugin.
+1. Create a module descriptor for each package. You will have to provide the correct `export` and `requires` statements in each of these descriptors.
+1. Address transitive dependencies. Now that your project uses modules, you may need to open your packages to dependencies or explicitly include transitive dependencies that are required by your dependencies that do not declare them all in a `modules-info.java`. *(Note: In particular, some amazon SDK dependencies do not provide modular jars but may require your project to reference the libraries they use. You might need to add **`requires`** statement to your modules-info.java to reference those dependencies. See this discussion thread on modularization of *<a href="https://github.com/aws/aws-sdk-java-v2/issues/1869" target="_blank">*aws 2*</a>*.)*
+1. Make sure the project still runs!
 
 ## Section 3: Write Unit Tests and Refactor Project to Support Unit Tests
 
@@ -62,16 +62,16 @@ Some of these requirements might not be properly implemented, so, even if you wr
 #### Application Requirements to Test:
 
 1. If alarm is armed *and* a sensor becomes activated, put the system into pending alarm status.
-2. If alarm is armed *and* a sensor becomes activated *and* the system is already pending alarm, set off the alarm.
-3. If pending alarm *and* all sensors are inactive, return to no alarm state.
-4. If alarm is active, change in sensor state should not affect the alarm state.
-5. If a sensor is activated *while* already active *and* the system is in pending state, change it to alarm state.
-6. If a sensor is deactivated *while* already inactive, make no changes to the alarm state.
-7. If the camera image contains a cat *while* the system is armed-home, put the system into alarm status.
-8. If the camera image does not contain a cat, change the status to no alarm *as long as* the sensors are not active.
-9. If the system is disarmed, set the status to no alarm.
-10. If the system is armed, reset all sensors to inactive.
-11. If the system is armed-home *while* the camera shows a cat, set the alarm status to alarm.
+1. If alarm is armed *and* a sensor becomes activated *and* the system is already pending alarm, set off the alarm.
+1. If pending alarm *and* all sensors are inactive, return to no alarm state.
+1. If alarm is active, change in sensor state should not affect the alarm state.
+1. If a sensor is activated *while* already active *and* the system is in pending state, change it to alarm state.
+1. If a sensor is deactivated *while* already inactive, make no changes to the alarm state.
+1. If the camera image contains a cat *while* the system is armed-home, put the system into alarm status.
+1. If the camera image does not contain a cat, change the status to no alarm *as long as* the sensors are not active.
+1. If the system is disarmed, set the status to no alarm.
+1. If the system is armed, reset all sensors to inactive.
+1. If the system is armed-home *while* the camera shows a cat, set the alarm status to alarm.
 
 *Reminder*: If you find yourself relying on the behavior of another service, you may want to consider using a Mock!
 
@@ -80,7 +80,7 @@ As we stated in the previous section, a failing unit test could mean one of two 
  1. Your unit test is faulty.
  2. Something in your program isn't working.
 
-Your task is to make sure all the Application Requirements are properly implemented. Some requirements may not be performed and some bugs may produce unexpected behavior.  After you fix any broken requirements, all of your unit tests should pass!
+Your task is to make sure all of the Application Requirements are properly implemented. Some requirements may not be performed and some bugs may produce unexpected behavior.  After you fix any broken requirements, all of your unit tests should pass!
 
 ### Application Requirements to Test:
  1. If alarm is armed _and_ a sensor becomes activated, put the system into pending alarm status.
