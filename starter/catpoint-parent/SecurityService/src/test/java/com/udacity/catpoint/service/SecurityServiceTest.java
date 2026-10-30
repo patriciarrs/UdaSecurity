@@ -21,8 +21,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,12 +64,13 @@ class SecurityServiceTest {
     }
 
     // 2
-    @Test
+    @ParameterizedTest(name = "arming mode {0}: sensor activation while pending sets alarm")
+    @EnumSource(value = ArmingStatus.class, names = {"ARMED_HOME", "ARMED_AWAY"})
     @DisplayName("If alarm is armed and a sensor becomes activated and the system is already pending alarm, set off the alarm.")
-    void sensorActivation_whilePending_setsAlarm() {
+    void sensorActivation_whilePending_setsAlarm(ArmingStatus armingStatus) {
         // Arrange
         Sensor sensor = new Sensor("Front door", SensorType.DOOR);
-        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
+        when(securityRepository.getArmingStatus()).thenReturn(armingStatus);
         when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
 
         // Act
@@ -78,22 +81,56 @@ class SecurityServiceTest {
         verify(securityRepository).updateSensor(eq(sensor));
     }
 
-    // 3
+    // 3 - inactive
     @Test
     @DisplayName("If pending alarm and all sensors are inactive, return to no alarm state.")
     void sensorDeactivation_whenAllSensorsInactive_returnsToNoAlarm() {
         // Arrange
-        Sensor sensor = new Sensor("Front door", SensorType.DOOR);
-        sensor.setActive(true);
+        Sensor frontDoor = new Sensor("Front door", SensorType.DOOR);
+        Sensor window = new Sensor("Living room window", SensorType.WINDOW);
+        frontDoor.setActive(true);
+        window.setActive(false);
+        Set<Sensor> sensors = new HashSet<>();
+        sensors.add(frontDoor);
+        sensors.add(window);
+        when(securityRepository.getSensors()).thenReturn(sensors);
         when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
 
         // Act
-        securityService.changeSensorActivationStatus(sensor, false);
+        securityService.changeSensorActivationStatus(frontDoor, false);
 
         // Assert
-        assertFalse(sensor.getActive());
+        assertFalse(frontDoor.getActive());
+        assertFalse(window.getActive());
+        verify(securityRepository).getSensors();
         verify(securityRepository).setAlarmStatus(eq(AlarmStatus.NO_ALARM));
-        verify(securityRepository).updateSensor(eq(sensor));
+        verify(securityRepository).updateSensor(eq(frontDoor));
+    }
+
+    // 3 - active
+    @Test
+    @DisplayName("If pending alarm and another sensor remains active, keep the alarm pending.")
+    void sensorDeactivation_whenAnotherSensorRemainsActive_keepsPendingAlarm() {
+        // Arrange
+        Sensor frontDoor = new Sensor("Front door", SensorType.DOOR);
+        Sensor window = new Sensor("Living room window", SensorType.WINDOW);
+        frontDoor.setActive(true);
+        window.setActive(true);
+        Set<Sensor> sensors = new HashSet<>();
+        sensors.add(frontDoor);
+        sensors.add(window);
+        when(securityRepository.getSensors()).thenReturn(sensors);
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
+
+        // Act
+        securityService.changeSensorActivationStatus(frontDoor, false);
+
+        // Assert
+        assertFalse(frontDoor.getActive());
+        assertTrue(window.getActive());
+        verify(securityRepository).getSensors();
+        verify(securityRepository).updateSensor(eq(frontDoor));
+        verify(securityRepository, never()).setAlarmStatus(any(AlarmStatus.class));
     }
 
     // 4
@@ -162,19 +199,46 @@ class SecurityServiceTest {
         verify(securityRepository).setAlarmStatus(eq(AlarmStatus.ALARM));
     }
 
-    // 8
+    // 8 - inactive
     @Test
     @DisplayName("If the camera image does not contain a cat, change the status to no alarm as long as the sensors are not active.")
     void noCatDetected_whenSensorsInactive_setsNoAlarm() {
         // Arrange
         BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+        Sensor sensor = new Sensor("Front door", SensorType.DOOR);
+        sensor.setActive(false);
+        Set<Sensor> sensors = Set.of(sensor);
         when(imageService.imageContainsCat(eq(image), eq(50.0f))).thenReturn(false);
+        when(securityRepository.getSensors()).thenReturn(sensors);
 
         // Act
         securityService.processImage(image);
 
         // Assert
+        assertFalse(sensor.getActive());
+        verify(securityRepository).getSensors();
         verify(securityRepository).setAlarmStatus(eq(AlarmStatus.NO_ALARM));
+    }
+
+    // 8 - active
+    @Test
+    @DisplayName("If the camera image does not contain a cat while a sensor is active, leave the alarm status unchanged.")
+    void noCatDetected_whenSensorActive_keepsAlarmStatus() {
+        // Arrange
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+        Sensor sensor = new Sensor("Front door", SensorType.DOOR);
+        sensor.setActive(true);
+        when(imageService.imageContainsCat(eq(image), eq(50.0f))).thenReturn(false);
+        when(securityRepository.getSensors()).thenReturn(Set.of(sensor));
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
+
+        // Act
+        securityService.processImage(image);
+
+        // Assert
+        assertTrue(sensor.getActive());
+        verify(securityRepository).getSensors();
+        verify(securityRepository, never()).setAlarmStatus(any(AlarmStatus.class));
     }
 
     // 9
@@ -219,8 +283,8 @@ class SecurityServiceTest {
 
     // 11
     @Test
-    @DisplayName("If the system is armed-home while the camera shows a cat, set the alarm status to alarm.")
-    void systemArmedHome_whileCatVisible_setsAlarm() {
+    @DisplayName("If armed-home is selected while the latest camera result shows a cat, set the alarm status to alarm.")
+    void systemArmedHome_whenLatestCameraResultShowsCat_setsAlarm() {
         // Arrange
         BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
         when(imageService.imageContainsCat(eq(image), eq(50.0f))).thenReturn(true);
@@ -231,6 +295,9 @@ class SecurityServiceTest {
         securityService.setArmingStatus(ArmingStatus.ARMED_HOME);
 
         // Assert
-        verify(securityRepository).setAlarmStatus(eq(AlarmStatus.ALARM));
+        var interactions = inOrder(imageService, securityRepository);
+        interactions.verify(imageService).imageContainsCat(eq(image), eq(50.0f));
+        interactions.verify(securityRepository).setArmingStatus(eq(ArmingStatus.ARMED_HOME));
+        interactions.verify(securityRepository).setAlarmStatus(eq(AlarmStatus.ALARM));
     }
 }
