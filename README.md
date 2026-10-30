@@ -96,7 +96,7 @@ may have to move this logic into the security service to be tested.
 Remember, a failing unit test could mean one of two things:
 
 1. Your unit test is faulty.
-1. Something in your program isn't working.
+2. Something in your program isn't working.
 
 Some of these requirements might not be properly implemented, so, even if you write the correct unit test, it might
 still fail. You will fix any faulty or missing requirements in the next section.
