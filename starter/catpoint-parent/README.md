@@ -13,9 +13,8 @@ provider. An alarm is an on-screen status, not an audible siren or an emergency
 notification. The default image analyzer returns random results rather than
 recognizing the contents of your picture.
 
-The behavior described below is the intended operating model. Some transitions
-are not yet implemented correctly; see [Current limitations](#current-limitations)
-before trying the examples.
+The behavior described below is the operating model implemented by the
+SecurityService.
 
 ## Start the application
 
@@ -203,26 +202,6 @@ With no saved state, the application starts disarmed, with no alarm and no
 sensors. The selected image and scan heading are not saved. After a restart,
 select **Disarmed**, inspect the sensor rows, and load and scan an image before
 starting a new demonstration.
-
-## Current limitations
-
-The current implementation differs from the intended alarm rules in these
-ways:
-
-- Arming does not yet reset sensors or reevaluate a previous positive cat
-  result. Deactivate sensors manually before arming, and scan again after
-  selecting at-home mode.
-- Deactivating a sensor while pending clears the warning even if another sensor
-  remains active. Deactivating a sensor during a full alarm lowers it to pending
-  instead of preserving the alarm.
-- Repeated activation of an already-active sensor is ignored rather than
-  escalating a pending alarm.
-- A no-cat scan clears the alarm even when a sensor is active. A positive scan
-  outside at-home mode also clears the alarm. Avoid scanning during a
-  sensor-only walkthrough if you want to observe sensor transitions alone.
-
-These are behavior gaps, not evidence that a sensor has become safe or an
-incident has been resolved. Use **Disarmed** for an explicit reset of the alarm.
 
 ## Troubleshooting
 

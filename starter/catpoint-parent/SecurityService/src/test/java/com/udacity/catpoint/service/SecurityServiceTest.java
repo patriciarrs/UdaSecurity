@@ -230,7 +230,6 @@ class SecurityServiceTest {
         sensor.setActive(true);
         when(imageService.imageContainsCat(eq(image), eq(50.0f))).thenReturn(false);
         when(securityRepository.getSensors()).thenReturn(Set.of(sensor));
-        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
 
         // Act
         securityService.processImage(image);
