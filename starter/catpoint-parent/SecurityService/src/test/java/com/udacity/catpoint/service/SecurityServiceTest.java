@@ -1,5 +1,6 @@
 package com.udacity.catpoint.service;
 
+import com.udacity.catpoint.application.StatusListener;
 import com.udacity.catpoint.data.AlarmStatus;
 import com.udacity.catpoint.data.ArmingStatus;
 import com.udacity.catpoint.data.SecurityRepository;
@@ -37,6 +38,9 @@ class SecurityServiceTest {
 
     @Mock
     private ImageService imageService;
+
+    @Mock
+    private StatusListener statusListener;
 
     private SecurityService securityService;
 
@@ -78,6 +82,37 @@ class SecurityServiceTest {
 
         // Assert
         verify(securityRepository).setAlarmStatus(eq(AlarmStatus.ALARM));
+        verify(securityRepository).updateSensor(eq(sensor));
+    }
+
+    @Test
+    @DisplayName("If the system is disarmed, activating a sensor does not change the alarm status.")
+    void sensorActivation_whileDisarmed_keepsAlarmState() {
+        // Arrange
+        Sensor sensor = new Sensor("Front door", SensorType.DOOR);
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
+
+        // Act
+        securityService.changeSensorActivationStatus(sensor, true);
+
+        // Assert
+        verify(securityRepository, never()).setAlarmStatus(any(AlarmStatus.class));
+        verify(securityRepository).updateSensor(eq(sensor));
+    }
+
+    @Test
+    @DisplayName("If a sensor is activated while the alarm is already active, keep the alarm active.")
+    void sensorActivation_whileAlarmActive_keepsAlarmActive() {
+        // Arrange
+        Sensor sensor = new Sensor("Front door", SensorType.DOOR);
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_AWAY);
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.ALARM);
+
+        // Act
+        securityService.changeSensorActivationStatus(sensor, true);
+
+        // Assert
+        verify(securityRepository, never()).setAlarmStatus(any(AlarmStatus.class));
         verify(securityRepository).updateSensor(eq(sensor));
     }
 
@@ -168,6 +203,23 @@ class SecurityServiceTest {
         verify(securityRepository).updateSensor(eq(sensor));
     }
 
+    @ParameterizedTest(name = "alarm status {0}: repeated activation does not change alarm status")
+    @EnumSource(value = AlarmStatus.class, names = {"NO_ALARM", "ALARM"})
+    @DisplayName("If an already active sensor is activated again outside pending alarm, do not change the alarm status.")
+    void sensorReactivated_outsidePending_keepsAlarmState(AlarmStatus alarmStatus) {
+        // Arrange
+        Sensor sensor = new Sensor("Front door", SensorType.DOOR);
+        sensor.setActive(true);
+        when(securityRepository.getAlarmStatus()).thenReturn(alarmStatus);
+
+        // Act
+        securityService.changeSensorActivationStatus(sensor, true);
+
+        // Assert
+        verify(securityRepository, never()).setAlarmStatus(any(AlarmStatus.class));
+        verify(securityRepository).updateSensor(eq(sensor));
+    }
+
     // 6
     @Test
     @DisplayName("If a sensor is deactivated while already inactive, make no changes to the alarm state.")
@@ -197,6 +249,21 @@ class SecurityServiceTest {
 
         // Assert
         verify(securityRepository).setAlarmStatus(eq(AlarmStatus.ALARM));
+    }
+
+    @Test
+    @DisplayName("If the camera image contains a cat while the system is not armed-home, do not set off the alarm.")
+    void catDetected_whileArmedAway_keepsAlarmState() {
+        // Arrange
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+        when(imageService.imageContainsCat(eq(image), eq(50.0f))).thenReturn(true);
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_AWAY);
+
+        // Act
+        securityService.processImage(image);
+
+        // Assert
+        verify(securityRepository, never()).setAlarmStatus(any(AlarmStatus.class));
     }
 
     // 8 - inactive
@@ -280,6 +347,22 @@ class SecurityServiceTest {
         verify(securityRepository).setArmingStatus(eq(armingStatus));
     }
 
+    @Test
+    @DisplayName("When arming with inactive sensors, leave their state unchanged.")
+    void systemArmed_withInactiveSensors_doesNotUpdateSensors() {
+        // Arrange
+        Sensor sensor = new Sensor("Front door", SensorType.DOOR);
+        when(securityRepository.getSensors()).thenReturn(Set.of(sensor));
+
+        // Act
+        securityService.setArmingStatus(ArmingStatus.ARMED_AWAY);
+
+        // Assert
+        assertFalse(sensor.getActive());
+        verify(securityRepository, never()).updateSensor(any(Sensor.class));
+        verify(securityRepository).setArmingStatus(eq(ArmingStatus.ARMED_AWAY));
+    }
+
     // 11
     @Test
     @DisplayName("If armed-home is selected while the latest camera result shows a cat, set the alarm status to alarm.")
@@ -298,5 +381,27 @@ class SecurityServiceTest {
         interactions.verify(imageService).imageContainsCat(eq(image), eq(50.0f));
         interactions.verify(securityRepository).setArmingStatus(eq(ArmingStatus.ARMED_HOME));
         interactions.verify(securityRepository).setAlarmStatus(eq(AlarmStatus.ALARM));
+    }
+
+    @Test
+    @DisplayName("Registered status listeners receive alarm and camera updates, and removed listeners receive no further updates.")
+    void statusListener_whenRegisteredReceivesUpdates_thenRemovalStopsNotifications() {
+        // Arrange
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+        when(imageService.imageContainsCat(eq(image), eq(50.0f))).thenReturn(false);
+        when(securityRepository.getSensors()).thenReturn(Set.of());
+        securityService.addStatusListener(statusListener);
+
+        // Act
+        securityService.setAlarmStatus(AlarmStatus.PENDING_ALARM);
+        securityService.processImage(image);
+        securityService.removeStatusListener(statusListener);
+        securityService.setAlarmStatus(AlarmStatus.ALARM);
+
+        // Assert
+        verify(statusListener).notify(AlarmStatus.PENDING_ALARM);
+        verify(statusListener).notify(AlarmStatus.NO_ALARM);
+        verify(statusListener).catDetected(false);
+        verify(statusListener, never()).notify(AlarmStatus.ALARM);
     }
 }
