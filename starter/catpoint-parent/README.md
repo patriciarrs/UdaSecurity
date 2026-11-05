@@ -33,37 +33,24 @@ No AWS account or credentials are required for the default demo.
 
 Open a terminal in this directory (`starter/catpoint-parent`), where the parent
 `pom.xml` is located. Check that `java -version` and `mvn -version` report the
-expected JDK, then run:
+expected JDK, then build both modules and the executable JAR:
 
 ```sh
-mvn install
-mvn -pl SecurityService dependency:copy-dependencies -DincludeScope=runtime
+mvn clean package
 ```
 
-The first command builds both modules and installs them in your local Maven
-repository. The second prepares the runtime libraries in
-`SecurityService/target/dependency`.
-
-On macOS or Linux, launch with:
+Run the packaged application with:
 
 ```sh
-java -cp "SecurityService/target/classes:SecurityService/target/dependency/*" com.udacity.catpoint.application.CatpointApp
+java -jar SecurityService/target/SecurityService-1.0-SNAPSHOT.jar
 ```
 
-On Windows (PowerShell or Command Prompt), use a semicolon between classpath
-entries:
-
-```powershell
-java -cp "SecurityService/target/classes;SecurityService/target/dependency/*" com.udacity.catpoint.application.CatpointApp
-```
-
-Keep the quotes and the `*` in the command. The window title is **Very Secure
-App**, and the heading inside is **Very Secure Home Security**.
-
-Repeat the build and dependency-preparation commands after source or dependency
-changes. Otherwise, you can reuse the launch command. The current build does
-not produce a self-contained executable JAR; `java -jar` is not a supported
-startup method.
+The SecurityService JAR includes its runtime dependencies and declares
+`com.udacity.catpoint.application.CatpointApp` as its main class. The window
+title is **Very Secure App**, and the heading inside is **Very Secure Home
+Security**. Rebuild with `mvn clean package` after source or dependency changes.
+For submission, capture the terminal command and launched application in
+`executable_jar.png` in this directory.
 
 ### From IntelliJ IDEA
 
@@ -208,8 +195,8 @@ starting a new demonstration.
 | Problem                                                               | What to check                                                                                                                                         |
 |-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `mvn` or `java` is not found.                                         | Install Maven and a compatible JDK, put them on `PATH`, and reopen the terminal. Check `mvn -version` for the JDK Maven actually uses.                |
-| The build cannot resolve dependencies.                                | Check network/proxy access and run `mvn install` from this directory before preparing `SecurityService` dependencies. Both modules must be available. |
-| The launch reports a missing main class or library.                   | Run both preparation commands again, launch from `starter/catpoint-parent`, and use the correct classpath separator for your OS.                      |
+| The build cannot resolve dependencies.                                | Check network/proxy access and run `mvn clean package` from this directory. The Maven reactor builds both modules together.                              |
+| The launch reports a missing main class or library.                   | Run `mvn clean package` from `starter/catpoint-parent`, then launch the JAR at `SecurityService/target/SecurityService-1.0-SNAPSHOT.jar`.                |
 | The launch reports `HeadlessException` or a display connection error. | Run in a local graphical desktop session with a working display, not a headless environment.                                                          |
 | **Invalid image selected.** appears.                                  | Choose a readable image file, not a directory or a renamed non-image file, and confirm the preview loads before scanning.                             |
 | The cat result appears wrong or changes between scans.                | This is expected with the random demo analyzer; it does not recognize image contents.                                                                 |
