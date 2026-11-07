@@ -8,7 +8,9 @@ import com.udacity.catpoint.data.Sensor;
 import com.udacity.catpoint.imageservice.ImageService;
 
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -53,7 +55,10 @@ public class SecurityService {
         if(armingStatus == ArmingStatus.DISARMED) {
             setAlarmStatus(AlarmStatus.NO_ALARM);
         } else {
-            securityRepository.getSensors().stream()
+            // Copy first: updateSensor may modify the repository's live sensor set.
+            List<Sensor> sensors = new ArrayList<>(securityRepository.getSensors());
+
+            sensors.stream()
                     .filter(sensor -> Boolean.TRUE.equals(sensor.getActive()))
                     .forEach(sensor -> {
                         sensor.setActive(false);
