@@ -1,5 +1,3 @@
-@ -1,237 +0,0 @@
-
 # Catpoint user manual
 
 Catpoint is a desktop simulation of a home-security system. You can create
@@ -85,8 +83,8 @@ Choose a mode in **System Control**. The selected button is highlighted.
 | **Armed - Away**    | Sensor monitoring is on. The cat-triggered alarm rule applies only to the at-home mode.                                                                                             |
 
 Both armed modes treat all sensor types alike; the at-home mode does not bypass
-motion sensors. Arming is intended to reset all sensors to inactive. There is no
-entry/exit delay or PIN prompt.
+motion sensors. Selecting either armed mode resets all sensors to inactive.
+There is no entry/exit delay or PIN prompt.
 
 ### Alarm levels
 
@@ -161,7 +159,6 @@ provide a way to send those repeated events directly.
 
 1. Select **Disarmed** to begin with no alarm.
 2. Add two sensors, for example `Front door` (`DOOR`) and `Hallway` (`MOTION`).
-   If reusing saved sensors, deactivate them first.
 3. Select **Armed - Away**.
 4. Activate `Front door`. The status becomes **I'm in Danger...**.
 5. Deactivate it while the other sensor is inactive. The status returns to **Cool and Good**.
