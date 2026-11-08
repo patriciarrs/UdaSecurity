@@ -20,7 +20,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,13 +38,10 @@ class SecurityServiceTest {
 
     @Mock
     private SecurityRepository securityRepository;
-
     @Mock
     private ImageService imageService;
-
     @Mock
     private StatusListener statusListener;
-
     private SecurityService securityService;
 
     @BeforeEach
@@ -331,20 +331,19 @@ class SecurityServiceTest {
         Sensor window = new Sensor("Living room window", SensorType.WINDOW);
         frontDoor.setActive(true);
         window.setActive(true);
-        Set<Sensor> sensors = new HashSet<>();
-        sensors.add(frontDoor);
-        sensors.add(window);
-        when(securityRepository.getSensors()).thenReturn(sensors);
+        FakeSecurityRepository fakeRepository = new FakeSecurityRepository();
+        fakeRepository.addSensor(frontDoor);
+        fakeRepository.addSensor(window);
+        SecurityService service = new SecurityService(fakeRepository, imageService);
+        service.addStatusListener(statusListener);
 
         // Act
-        securityService.setArmingStatus(armingStatus);
+        assertDoesNotThrow(() -> service.setArmingStatus(armingStatus));
 
         // Assert
-        assertFalse(frontDoor.getActive());
-        assertFalse(window.getActive());
-        verify(securityRepository).updateSensor(eq(frontDoor));
-        verify(securityRepository).updateSensor(eq(window));
-        verify(securityRepository).setArmingStatus(eq(armingStatus));
+        assertTrue(fakeRepository.getSensors().stream().noneMatch(Sensor::getActive));
+        assertEquals(armingStatus, fakeRepository.getArmingStatus());
+        verify(statusListener).sensorStatusChanged();
     }
 
     @Test
@@ -403,5 +402,56 @@ class SecurityServiceTest {
         verify(statusListener).notify(AlarmStatus.NO_ALARM);
         verify(statusListener).catDetected(false);
         verify(statusListener, never()).notify(AlarmStatus.ALARM);
+    }
+
+    /**
+     * In-memory repository that behaves like PretendDatabaseSecurityRepositoryImpl: updateSensor
+     * removes and re-adds the sensor in the same set returned by getSensors().
+     */
+    private static class FakeSecurityRepository implements SecurityRepository {
+        private final Set<Sensor> sensors = new TreeSet<>();
+        private AlarmStatus alarmStatus = AlarmStatus.NO_ALARM;
+        private ArmingStatus armingStatus = ArmingStatus.DISARMED;
+
+        @Override
+        public void addSensor(Sensor sensor) {
+            sensors.add(sensor);
+        }
+
+        @Override
+        public void removeSensor(Sensor sensor) {
+            sensors.remove(sensor);
+        }
+
+        @Override
+        public void updateSensor(Sensor sensor) {
+            sensors.remove(sensor);
+            sensors.add(sensor);
+        }
+
+        @Override
+        public Set<Sensor> getSensors() {
+            return sensors;
+        }
+
+        @Override
+        public AlarmStatus getAlarmStatus() {
+            return alarmStatus;
+        }
+
+        @Override
+        public void setAlarmStatus(AlarmStatus alarmStatus) {
+            this.alarmStatus = alarmStatus;
+        }
+
+        @Override
+        public ArmingStatus getArmingStatus() {
+            return armingStatus;
+        }
+
+        @Override
+        public void setArmingStatus(ArmingStatus armingStatus) {
+            this.armingStatus = armingStatus;
+        }
     }
 }

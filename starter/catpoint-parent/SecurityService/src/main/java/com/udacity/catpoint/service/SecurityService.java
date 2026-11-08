@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Coordinates security-system state changes in response to arming selections, sensor updates,
@@ -46,7 +47,8 @@ public class SecurityService {
 
     /**
      * Changes the system's arming mode. Disarming clears the alarm. Selecting either armed mode
-     * resets active sensors before persisting the new mode. If the latest camera scan detected
+     * resets active sensors before persisting the new mode, and notifies listeners of the sensor
+     * change if any sensor was reset. If the latest camera scan detected
      * a cat, selecting armed-home then sets the alarm after the new mode has been persisted.
      *
      * @param armingStatus the mode to apply
@@ -56,14 +58,18 @@ public class SecurityService {
             setAlarmStatus(AlarmStatus.NO_ALARM);
         } else {
             // Copy first: updateSensor may modify the repository's live sensor set.
-            List<Sensor> sensors = new ArrayList<>(securityRepository.getSensors());
-
-            sensors.stream()
+            List<Sensor> activeSensors = securityRepository.getSensors().stream()
                     .filter(sensor -> Boolean.TRUE.equals(sensor.getActive()))
-                    .forEach(sensor -> {
-                        sensor.setActive(false);
-                        securityRepository.updateSensor(sensor);
-                    });
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            activeSensors.forEach(sensor -> {
+                sensor.setActive(false);
+                securityRepository.updateSensor(sensor);
+            });
+
+            if(!activeSensors.isEmpty()) {
+                notifySensorStatusChanged();
+            }
         }
 
         securityRepository.setArmingStatus(armingStatus);
@@ -158,7 +164,7 @@ public class SecurityService {
 
     /**
      * Changes a sensor's activation state, updates the alarm state when required, then persists
-     * the sensor. Repeating an activation while an alarm is pending escalates to alarm status;
+     * the sensor and notifies listeners of the sensor change. Repeating an activation while an alarm is pending escalates to alarm status;
      * redundant deactivation does not cause an alarm transition.
      *
      * @param sensor sensor to update
@@ -179,6 +185,14 @@ public class SecurityService {
 
         sensor.setActive(active);
         securityRepository.updateSensor(sensor);
+        notifySensorStatusChanged();
+    }
+
+    /**
+     * Informs all registered listeners that one or more sensor states have changed.
+     */
+    private void notifySensorStatusChanged() {
+        statusListeners.forEach(StatusListener::sensorStatusChanged);
     }
 
     /**

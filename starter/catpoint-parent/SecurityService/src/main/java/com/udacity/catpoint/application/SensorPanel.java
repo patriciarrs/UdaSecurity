@@ -1,5 +1,6 @@
 package com.udacity.catpoint.application;
 
+import com.udacity.catpoint.data.AlarmStatus;
 import com.udacity.catpoint.data.Sensor;
 import com.udacity.catpoint.data.SensorType;
 import com.udacity.catpoint.service.SecurityService;
@@ -10,9 +11,10 @@ import javax.swing.*;
 
 /**
  * Panel that allows users to add sensors to their system. Sensors may be
- * manually set to "active" and "inactive" to test the system.
+ * manually set to "active" and "inactive" to test the system. Implements the StatusListener
+ * interface so the sensor list refreshes whenever sensor states change.
  */
-public class SensorPanel extends JPanel {
+public class SensorPanel extends JPanel implements StatusListener {
 
     private SecurityService securityService;
 
@@ -30,6 +32,7 @@ public class SensorPanel extends JPanel {
         super();
         setLayout(new MigLayout());
         this.securityService = securityService;
+        securityService.addStatusListener(this);
 
         panelLabel.setFont(StyleService.HEADING_FONT);
         addNewSensorButton.addActionListener(e ->
@@ -87,13 +90,13 @@ public class SensorPanel extends JPanel {
     }
 
     /**
-     * Asks the securityService to change a sensor activation status and then rebuilds the current sensor list
+     * Asks the securityService to change a sensor activation status. The service notifies this
+     * panel through {@link #sensorStatusChanged()}, which rebuilds the current sensor list.
      * @param sensor The sensor to update
      * @param isActive The sensor's activation status
      */
     private void setSensorActivity(Sensor sensor, Boolean isActive) {
         securityService.changeSensorActivationStatus(sensor, isActive);
-        updateSensorList(sensorListPanel);
     }
 
     /**
@@ -115,6 +118,21 @@ public class SensorPanel extends JPanel {
      */
     private void removeSensor(Sensor sensor) {
         securityService.removeSensor(sensor);
+        updateSensorList(sensorListPanel);
+    }
+
+    @Override
+    public void notify(AlarmStatus status) {
+        // no behavior necessary
+    }
+
+    @Override
+    public void catDetected(boolean catDetected) {
+        // no behavior necessary
+    }
+
+    @Override
+    public void sensorStatusChanged() {
         updateSensorList(sensorListPanel);
     }
 }
